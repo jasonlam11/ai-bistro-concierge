@@ -7,10 +7,12 @@ import {
   Pressable,
   FlatList,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,6 +41,7 @@ const QUICK_PROMPTS = [
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -147,6 +150,13 @@ export default function ChatScreen() {
             </Text>
           </Animated.View>
         )}
+        <Pressable
+          onPress={() => Keyboard.dismiss()}
+          style={({ pressed }) => [styles.dismissBtn, pressed && { opacity: 0.6 }]}
+          hitSlop={8}
+        >
+          <Ionicons name="chevron-down" size={20} color={COLORS.textMuted} />
+        </Pressable>
       </View>
 
       {/* Messages */}
@@ -157,10 +167,12 @@ export default function ChatScreen() {
         keyExtractor={(m) => m.id}
         contentContainerStyle={[
           styles.messageList,
-          { paddingBottom: insets.bottom + 20 },
+          { paddingBottom: SPACING.md },
         ]}
         onContentSizeChange={scrollToBottom}
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
       />
 
       {/* Typing indicator */}
@@ -200,7 +212,7 @@ export default function ChatScreen() {
       {/* Input bar */}
       <LinearGradient
         colors={[COLORS.bg + "00", COLORS.bg]}
-        style={[styles.inputGradient, { paddingBottom: insets.bottom + SPACING.sm }]}
+        style={[styles.inputGradient, { paddingBottom: tabBarHeight + SPACING.sm }]}
       >
         <View style={styles.inputRow}>
           <TextInput
@@ -297,6 +309,16 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderWidth: 1,
     borderColor: COLORS.gold + "44",
+  },
+  dismissBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
   },
   cartChipText: {
     color: COLORS.gold,

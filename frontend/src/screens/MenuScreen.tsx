@@ -93,11 +93,13 @@ export default function MenuScreen() {
                 active && { backgroundColor: meta.color, borderColor: meta.color },
               ]}
             >
-              <Ionicons
-                name={meta.icon as any}
-                size={14}
-                color={active ? COLORS.bg : COLORS.textMuted}
-              />
+              <View style={styles.filterIcon}>
+                <Ionicons
+                  name={meta.icon as any}
+                  size={14}
+                  color={active ? COLORS.bg : COLORS.textMuted}
+                />
+              </View>
               <Text style={[styles.filterText, active && { color: COLORS.bg }]}>
                 {meta.label}
               </Text>
@@ -186,11 +188,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   filterContainer: {
-    maxHeight: 48,
+    height: 56,
     marginBottom: SPACING.sm,
   },
   filterScroll: {
     paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
     gap: SPACING.sm,
   },
   filterPill: {
@@ -198,11 +201,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs + 2,
+    height: 36,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  filterIcon: {
+    width: 14,
+    height: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   filterText: {
     color: COLORS.textMuted,

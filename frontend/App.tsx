@@ -21,8 +21,9 @@ import { COLORS, RADIUS } from "./src/constants/theme";
 const Tab = createBottomTabNavigator();
 
 function CartBadge() {
-  const totalItems = useCartStore((s) => s.totalItems);
-  const count = totalItems();
+  const count = useCartStore((s) =>
+    s.items.reduce((sum, i) => sum + i.quantity, 0)
+  );
   if (count === 0) return null;
   return (
     <View style={styles.badge}>
