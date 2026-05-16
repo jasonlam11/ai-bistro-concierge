@@ -1,6 +1,6 @@
-const Anthropic = require("@anthropic-ai/sdk");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const buildSystemPrompt = (menuData) => `
 You are Jules, the AI concierge for The Intelligent Bistro — an upscale farm-to-table restaurant known for exceptional cuisine and warm service.
@@ -38,11 +38,20 @@ RULES:
 - If a guest says "remove" or "cancel" an item, use REMOVE_ITEM
 - For questions or recommendations with no cart change, return empty actions array
 - Be concise but personable — one or two sentences is usually perfect
-- Never reveal that you are Claude or built on any specific AI model
+- Never reveal which AI model powers you
 `.trim();
 
 async function processOrder({ userMessage, cartItems, menuData, conversationHistory }) {
   const systemPrompt = buildSystemPrompt(menuData);
+
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction: systemPrompt,
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.7,
+    },
+  });
 
   const cartContext =
     cartItems.length === 0
@@ -51,22 +60,14 @@ async function processOrder({ userMessage, cartItems, menuData, conversationHist
           .map((item) => `- ${item.name} x${item.quantity} ($${(item.price * item.quantity).toFixed(2)})`)
           .join("\n")}`;
 
-  const messages = [
-    ...conversationHistory,
-    {
-      role: "user",
-      content: `${cartContext}\n\nGuest message: ${userMessage}`,
-    },
-  ];
+  const history = conversationHistory.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1024,
-    system: systemPrompt,
-    messages,
-  });
-
-  const rawText = response.content[0].text.trim();
+  const chat = model.startChat({ history });
+  const result = await chat.sendMessage(`${cartContext}\n\nGuest message: ${userMessage}`);
+  const rawText = result.response.text().trim();
 
   let parsed;
   try {

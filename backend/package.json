@@ -1,14 +1,14 @@
 {
   "name": "intelligent-bistro-backend",
   "version": "1.0.0",
-  "description": "Node.js API for The Intelligent Bistro — natural language order processing via Claude",
+  "description": "Node.js API for The Intelligent Bistro — natural language order processing via Gemini",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
+    "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2"

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { processOrder } = require("../services/claude");
+const { processOrder } = require("../services/ai");
 const menu = require("../data/menu");
 
 router.post("/", async (req, res) => {
