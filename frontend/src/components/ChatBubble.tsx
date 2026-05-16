@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { ChatMessage } from "../types";
-import { COLORS, RADIUS, SPACING } from "../constants/theme";
+import { COLORS, SPACING, FONT_FAMILY } from "../constants/theme";
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -16,18 +16,10 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
       entering={FadeInUp.springify().damping(16)}
       style={[styles.wrapper, isUser ? styles.wrapperUser : styles.wrapperAssistant]}
     >
-      {!isUser && (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>J</Text>
-        </View>
-      )}
-
-      <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
-        <Text style={[styles.text, isUser ? styles.textUser : styles.textAssistant]}>
+      {!isUser && <Text style={styles.byline}>Jules ·</Text>}
+      <View style={isUser ? styles.userBlock : styles.assistantBlock}>
+        <Text style={isUser ? styles.userText : styles.assistantText}>
           {message.content}
-        </Text>
-        <Text style={[styles.time, isUser ? styles.timeUser : styles.timeAssistant]}>
-          {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </Text>
       </View>
     </Animated.View>
@@ -36,69 +28,47 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    flexDirection: "row",
-    marginBottom: SPACING.sm,
-    gap: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   wrapperUser: {
-    flexDirection: "row-reverse",
-    paddingLeft: 60,
+    alignItems: "flex-end",
+    paddingLeft: SPACING.xxl,
   },
   wrapperAssistant: {
-    paddingRight: 60,
+    alignItems: "flex-start",
+    paddingRight: SPACING.xxl,
   },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.gold,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "flex-end",
-    marginBottom: 4,
+  byline: {
+    color: COLORS.gold,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+    marginBottom: 6,
   },
-  avatarText: {
-    color: COLORS.bg,
-    fontSize: 14,
-    fontWeight: "700",
+  assistantBlock: {
+    paddingLeft: SPACING.sm,
+    borderLeftWidth: 2,
+    borderLeftColor: COLORS.gold,
   },
-  bubble: {
-    borderRadius: RADIUS.lg,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    maxWidth: "100%",
-    flex: 1,
+  assistantText: {
+    color: COLORS.text,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 16,
+    lineHeight: 24,
+    letterSpacing: 0.2,
   },
-  bubbleUser: {
-    backgroundColor: COLORS.gold,
-    borderBottomRightRadius: 4,
-  },
-  bubbleAssistant: {
+  userBlock: {
     backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderBottomLeftRadius: 4,
+    borderRadius: 4,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm + 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.hairline,
   },
-  text: {
+  userText: {
+    color: COLORS.text,
     fontSize: 14,
     lineHeight: 20,
-  },
-  textUser: {
-    color: COLORS.bg,
-    fontWeight: "500",
-  },
-  textAssistant: {
-    color: COLORS.text,
-  },
-  time: {
-    fontSize: 10,
-    marginTop: 4,
-  },
-  timeUser: {
-    color: COLORS.bg + "99",
-    textAlign: "right",
-  },
-  timeAssistant: {
-    color: COLORS.textDim,
   },
 });

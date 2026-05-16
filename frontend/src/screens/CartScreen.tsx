@@ -2,33 +2,40 @@ import React from "react";
 import {
   View,
   Text,
-  FlatList,
+  ScrollView,
   StyleSheet,
   Pressable,
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import CartItemCard from "../components/CartItemCard";
 import { useCartStore } from "../store/cartStore";
-import { COLORS, RADIUS, SPACING } from "../constants/theme";
-import { CartItem } from "../types";
+import { COLORS, SPACING, FONT_FAMILY } from "../constants/theme";
 
 const TAX_RATE = 0.0875;
 
 export default function CartScreen() {
   const insets = useSafeAreaInsets();
-  const { items, clearCart, totalItems, totalPrice } = useCartStore();
+  const items = useCartStore((s) => s.items);
+  const totalItems = useCartStore((s) => s.items.reduce((sum, i) => sum + i.quantity, 0));
+  const totalPrice = useCartStore((s) => s.items.reduce((sum, i) => sum + i.price * i.quantity, 0));
+  const clearCart = useCartStore((s) => s.clearCart);
 
-  const subtotal = totalPrice();
+  const subtotal = totalPrice;
   const tax = subtotal * TAX_RATE;
   const total = subtotal + tax;
 
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
   const handleClear = () => {
-    Alert.alert("Clear Cart", "Remove all items from your cart?", [
+    Alert.alert("Clear the check?", "This will remove every item.", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Clear",
@@ -44,27 +51,24 @@ export default function CartScreen() {
   const handleCheckout = async () => {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert(
-      "Order Placed! 🎉",
-      `Your order of ${totalItems()} item${totalItems() !== 1 ? "s" : ""} has been sent to the kitchen. Estimated wait: 20–25 minutes.`,
-      [{ text: "Wonderful!", onPress: clearCart }]
+      "Sent to the Kitchen",
+      `Your party of ${totalItems} ${totalItems === 1 ? "course" : "courses"} is on its way. The wait is ours — roughly 20 to 25 minutes.`,
+      [{ text: "Wonderful", onPress: clearCart }]
     );
   };
-
-  const renderItem = ({ item }: { item: CartItem }) => <CartItemCard item={item} />;
 
   if (items.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Your Cart</Text>
+        <View style={styles.checkHeader}>
+          <Text style={styles.eyebrow}>The Check</Text>
+          <Text style={styles.headerTitle}>Your table awaits</Text>
         </View>
-        <Animated.View entering={FadeIn.delay(200)} style={styles.emptyState}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="bag-outline" size={48} color={COLORS.textDim} />
-          </View>
-          <Text style={styles.emptyTitle}>Your cart is empty</Text>
+        <Animated.View entering={FadeIn.delay(150)} style={styles.emptyState}>
+          <Text style={styles.emptyDiamond}>◆</Text>
+          <Text style={styles.emptyTitle}>Nothing on the table yet</Text>
           <Text style={styles.emptySubtitle}>
-            Browse the menu or ask Jules to add items for you
+            Browse the menu — or simply tell Jules what you'd like.
           </Text>
         </Animated.View>
       </View>
@@ -74,58 +78,73 @@ export default function CartScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Your Cart</Text>
-          <Text style={styles.headerSub}>
-            {totalItems()} {totalItems() === 1 ? "item" : "items"}
-          </Text>
-        </View>
-        <Pressable onPress={handleClear} style={styles.clearBtn}>
-          <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-        </Pressable>
-      </View>
-
-      {/* Items */}
-      <FlatList
-        data={items}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.listContent,
-          { paddingBottom: insets.bottom + 240 },
-        ]}
-        showsVerticalScrollIndicator={false}
-      />
-
-      {/* Order summary + checkout */}
-      <LinearGradient
-        colors={[COLORS.bg + "00", COLORS.bg, COLORS.bg]}
-        style={[styles.summaryContainer, { paddingBottom: insets.bottom + 90 }]}
-      >
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
+      <View style={styles.checkHeader}>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.eyebrow}>The Check</Text>
+            <Text style={styles.headerTitle}>Your table</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Tax (8.75%)</Text>
-            <Text style={styles.summaryValue}>${tax.toFixed(2)}</Text>
-          </View>
-          <View style={[styles.summaryRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
-          </View>
-
-          <Pressable
-            onPress={handleCheckout}
-            style={({ pressed }) => [styles.checkoutBtn, pressed && styles.checkoutBtnPressed]}
-          >
-            <Ionicons name="checkmark-circle" size={20} color={COLORS.bg} />
-            <Text style={styles.checkoutText}>Place Order</Text>
+          <Pressable onPress={handleClear} hitSlop={6} style={styles.clearBtn}>
+            <Text style={styles.clearBtnText}>Clear</Text>
           </Pressable>
         </View>
-      </LinearGradient>
+        <Text style={styles.headerDate}>{today}</Text>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 280 + insets.bottom }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Receipt sheet */}
+        <View style={styles.receipt}>
+          <View style={styles.ornamentRow}>
+            <View style={styles.ornamentLine} />
+            <Text style={styles.ornamentDiamond}>◆</Text>
+            <View style={styles.ornamentLine} />
+          </View>
+
+          {items.map((item) => (
+            <CartItemCard key={item.id} item={item} />
+          ))}
+
+          <View style={styles.divider} />
+
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Subtotal</Text>
+            <View style={styles.totalLeader} />
+            <Text style={styles.totalValue}>${subtotal.toFixed(2)}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Tax · 8.75%</Text>
+            <View style={styles.totalLeader} />
+            <Text style={styles.totalValue}>${tax.toFixed(2)}</Text>
+          </View>
+
+          <View style={[styles.divider, { marginTop: SPACING.sm }]} />
+
+          <View style={styles.grandTotalRow}>
+            <Text style={styles.grandLabel}>Total Due</Text>
+            <View style={styles.totalLeader} />
+            <Text style={styles.grandValue}>${total.toFixed(2)}</Text>
+          </View>
+
+          <Text style={styles.footnote}>
+            Gratuity is included. Tax is approximate.
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* Fixed checkout */}
+      <View style={[styles.checkoutWrap, { paddingBottom: insets.bottom + 100 }]}>
+        <Pressable
+          onPress={handleCheckout}
+          style={({ pressed }) => [styles.checkoutBtn, pressed && styles.checkoutBtnPressed]}
+        >
+          <Ionicons name="restaurant-outline" size={16} color={COLORS.bg} />
+          <Text style={styles.checkoutText}>Send to the Kitchen</Text>
+          <Text style={styles.checkoutAmount}>${total.toFixed(2)}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -135,99 +154,155 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
+  checkHeader: {
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.md,
+  },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  eyebrow: {
+    color: COLORS.textDim,
+    fontSize: 10,
+    letterSpacing: 3,
+    textTransform: "uppercase",
+    fontWeight: "600",
+    marginBottom: 2,
   },
   headerTitle: {
     color: COLORS.text,
-    fontSize: 22,
-    fontWeight: "700",
-    letterSpacing: -0.3,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 26,
+    letterSpacing: 0.3,
   },
-  headerSub: {
+  headerDate: {
     color: COLORS.textMuted,
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: 11,
+    fontStyle: "italic",
+    marginTop: 4,
+    letterSpacing: 0.5,
   },
   clearBtn: {
-    width: 38,
-    height: 38,
-    backgroundColor: COLORS.error + "22",
-    borderRadius: RADIUS.md,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: COLORS.error + "44",
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
   },
-  listContent: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.sm,
+  clearBtnText: {
+    color: COLORS.error,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    fontWeight: "600",
   },
-  summaryContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingTop: SPACING.xxl,
-    paddingHorizontal: SPACING.lg,
+  receipt: {
+    marginHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.lg,
   },
-  summaryCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: SPACING.sm,
-  },
-  summaryRow: {
+  ornamentRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: SPACING.sm,
+    marginBottom: SPACING.xs,
   },
-  summaryLabel: {
-    color: COLORS.textMuted,
-    fontSize: 14,
+  ornamentLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: COLORS.hairline,
   },
-  summaryValue: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "500",
+  ornamentDiamond: {
+    color: COLORS.gold,
+    fontSize: 10,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: COLORS.hairline,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.md,
   },
   totalRow: {
-    paddingTop: SPACING.sm,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: SPACING.sm,
+    marginBottom: SPACING.xs + 2,
   },
   totalLabel: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "700",
+    color: COLORS.textMuted,
+    fontSize: 13,
+    fontStyle: "italic",
+  },
+  totalLeader: {
+    flex: 1,
+    height: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.hairline,
+    marginBottom: 3,
   },
   totalValue: {
-    color: COLORS.gold,
+    color: COLORS.text,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 14,
+  },
+  grandTotalRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: SPACING.sm,
+    marginTop: 4,
+  },
+  grandLabel: {
+    color: COLORS.text,
+    fontFamily: FONT_FAMILY.serif,
     fontSize: 18,
-    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  grandValue: {
+    color: COLORS.gold,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 20,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  footnote: {
+    color: COLORS.textDim,
+    fontSize: 10,
+    fontStyle: "italic",
+    textAlign: "center",
+    marginTop: SPACING.lg,
+    letterSpacing: 0.4,
+  },
+  checkoutWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+    backgroundColor: COLORS.bg,
   },
   checkoutBtn: {
-    backgroundColor: COLORS.gold,
-    borderRadius: RADIUS.lg,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: SPACING.md,
     gap: SPACING.sm,
-    marginTop: SPACING.sm,
+    backgroundColor: COLORS.gold,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: 4,
   },
   checkoutBtnPressed: {
-    opacity: 0.85,
+    opacity: 0.88,
   },
   checkoutText: {
+    flex: 1,
     color: COLORS.bg,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 15,
+    letterSpacing: 0.3,
+  },
+  checkoutAmount: {
+    color: COLORS.bg,
+    fontFamily: FONT_FAMILY.serif,
     fontSize: 16,
     fontWeight: "700",
   },
@@ -235,30 +310,26 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingBottom: 100,
-    gap: SPACING.md,
+    paddingBottom: 80,
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.xl,
   },
-  emptyIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: "center",
-    justifyContent: "center",
+  emptyDiamond: {
+    color: COLORS.gold,
+    fontSize: 14,
     marginBottom: SPACING.sm,
   },
   emptyTitle: {
     color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "600",
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 20,
   },
   emptySubtitle: {
     color: COLORS.textMuted,
-    fontSize: 14,
+    fontSize: 13,
     textAlign: "center",
-    paddingHorizontal: SPACING.xl,
-    lineHeight: 20,
+    fontStyle: "italic",
+    lineHeight: 19,
+    marginTop: 4,
   },
 });

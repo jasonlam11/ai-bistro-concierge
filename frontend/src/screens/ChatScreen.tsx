@@ -21,22 +21,22 @@ import ChatBubble from "../components/ChatBubble";
 import { useCartStore } from "../store/cartStore";
 import { sendChatMessage, fetchMenu } from "../services/api";
 import { ChatMessage, MenuItem } from "../types";
-import { COLORS, RADIUS, SPACING } from "../constants/theme";
+import { COLORS, RADIUS, SPACING, FONT_FAMILY } from "../constants/theme";
 
 const WELCOME_MESSAGE: ChatMessage = {
   id: "welcome",
   role: "assistant",
   content:
-    "Good evening! I'm Jules, your personal bistro concierge. 🍽️\n\nI can help you explore our menu, answer questions about dishes, or add items to your cart — just ask naturally. For example:\n\n• \"What do you recommend for starters?\"\n• \"Add two ribeyes and a red wine\"\n• \"I'd like to try something vegetarian\"\n• \"Remove the scallops from my cart\"",
+    "Good evening. I'm Jules — at your service for the menu, for pairings, and for the small art of putting a table together. Tell me what you're in the mood for, and I'll see it done.",
   timestamp: new Date(),
 };
 
 const QUICK_PROMPTS = [
-  "What's popular tonight?",
-  "I'm vegetarian — any suggestions?",
-  "Add the wagyu burger",
-  "What pairs well with salmon?",
-  "Clear my cart",
+  "What's the chef sending out tonight?",
+  "Something vegetarian, please",
+  "A burger and a red wine",
+  "What pairs with the ribeye?",
+  "Clear the table",
 ];
 
 export default function ChatScreen() {
@@ -132,30 +132,23 @@ export default function ChatScreen() {
       style={[styles.container, { paddingTop: insets.top }]}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
-      {/* Header */}
+      {/* Editorial header */}
       <View style={styles.header}>
-        <View style={styles.headerAvatar}>
-          <Text style={styles.headerAvatarText}>J</Text>
-          <View style={styles.onlineDot} />
+        <View style={styles.headerLeft}>
+          <Text style={styles.eyebrow}>The Concierge</Text>
+          <Text style={styles.headerTitle}>Jules</Text>
+          <Text style={styles.headerSub}>
+            On duty {cartItems.length > 0
+              ? `·  ${cartItems.reduce((s, i) => s + i.quantity, 0)} on the table`
+              : "·  awaiting your order"}
+          </Text>
         </View>
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerName}>Jules</Text>
-          <Text style={styles.headerStatus}>Your AI bistro concierge</Text>
-        </View>
-        {cartItems.length > 0 && (
-          <Animated.View entering={FadeInDown} style={styles.cartChip}>
-            <Ionicons name="bag" size={14} color={COLORS.gold} />
-            <Text style={styles.cartChipText}>
-              {cartItems.reduce((s, i) => s + i.quantity, 0)} items
-            </Text>
-          </Animated.View>
-        )}
         <Pressable
           onPress={() => Keyboard.dismiss()}
           style={({ pressed }) => [styles.dismissBtn, pressed && { opacity: 0.6 }]}
           hitSlop={8}
         >
-          <Ionicons name="chevron-down" size={20} color={COLORS.textMuted} />
+          <Ionicons name="chevron-down" size={18} color={COLORS.textMuted} />
         </Pressable>
       </View>
 
@@ -178,13 +171,8 @@ export default function ChatScreen() {
       {/* Typing indicator */}
       {loading && (
         <Animated.View entering={FadeInDown} style={styles.typingContainer}>
-          <View style={styles.typingAvatar}>
-            <Text style={styles.typingAvatarText}>J</Text>
-          </View>
-          <View style={styles.typingBubble}>
-            <ActivityIndicator size="small" color={COLORS.gold} />
-            <Text style={styles.typingText}>Jules is typing…</Text>
-          </View>
+          <ActivityIndicator size="small" color={COLORS.gold} />
+          <Text style={styles.typingText}>Jules is composing a reply…</Text>
         </Animated.View>
       )}
 
@@ -255,114 +243,63 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.hairline,
     gap: SPACING.sm,
   },
-  headerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.gold,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  headerAvatarText: {
-    color: COLORS.bg,
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  onlineDot: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 10,
-    height: 10,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.success,
-    borderWidth: 2,
-    borderColor: COLORS.bg,
-  },
-  headerInfo: {
+  headerLeft: {
     flex: 1,
   },
-  headerName: {
-    color: COLORS.text,
-    fontSize: 15,
+  eyebrow: {
+    color: COLORS.textDim,
+    fontSize: 10,
+    letterSpacing: 3,
+    textTransform: "uppercase",
     fontWeight: "600",
+    marginBottom: 2,
   },
-  headerStatus: {
+  headerTitle: {
+    color: COLORS.text,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 26,
+    letterSpacing: 0.3,
+  },
+  headerSub: {
     color: COLORS.textMuted,
-    fontSize: 12,
-  },
-  cartChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: COLORS.gold + "22",
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: COLORS.gold + "44",
+    fontSize: 11,
+    fontStyle: "italic",
+    marginTop: 2,
+    letterSpacing: 0.4,
   },
   dismissBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.hairline,
     alignItems: "center",
     justifyContent: "center",
-  },
-  cartChipText: {
-    color: COLORS.gold,
-    fontSize: 12,
-    fontWeight: "600",
   },
   messageList: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
+    paddingTop: SPACING.lg,
   },
   typingContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.sm,
     paddingHorizontal: SPACING.lg,
-    marginBottom: SPACING.xs,
-  },
-  typingAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.gold,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  typingAvatarText: {
-    color: COLORS.bg,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  typingBubble: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    marginBottom: SPACING.sm,
   },
   typingText: {
     color: COLORS.textMuted,
-    fontSize: 13,
+    fontSize: 12,
+    fontStyle: "italic",
+    letterSpacing: 0.3,
   },
   quickPromptsContainer: {
     marginBottom: SPACING.sm,
@@ -372,19 +309,19 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   quickPrompt: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs + 2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.hairline,
   },
   quickPromptPressed: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
   quickPromptText: {
     color: COLORS.textMuted,
-    fontSize: 13,
+    fontSize: 12,
+    fontStyle: "italic",
+    letterSpacing: 0.3,
   },
   inputGradient: {
     paddingTop: SPACING.md,
@@ -394,12 +331,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     gap: SPACING.sm,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.hairline,
+    paddingHorizontal: 0,
+    paddingTop: SPACING.sm + 2,
+    paddingBottom: 4,
   },
   input: {
     flex: 1,
@@ -407,17 +343,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     maxHeight: 100,
     paddingVertical: 4,
+    fontFamily: FONT_FAMILY.serif,
   },
   sendBtn: {
     width: 36,
     height: 36,
-    borderRadius: RADIUS.full,
+    borderRadius: 18,
     backgroundColor: COLORS.gold,
     alignItems: "center",
     justifyContent: "center",
   },
   sendBtnDisabled: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: "transparent",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.hairline,
   },
   sendBtnPressed: {
     opacity: 0.85,

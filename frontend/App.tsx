@@ -4,19 +4,12 @@ import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { View, Text, StyleSheet, Platform } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from "react-native-reanimated";
 
 import MenuScreen from "./src/screens/MenuScreen";
 import ChatScreen from "./src/screens/ChatScreen";
 import CartScreen from "./src/screens/CartScreen";
 import { useCartStore } from "./src/store/cartStore";
-import { COLORS, RADIUS } from "./src/constants/theme";
+import { COLORS } from "./src/constants/theme";
 
 const Tab = createBottomTabNavigator();
 
@@ -32,28 +25,23 @@ function CartBadge() {
   );
 }
 
-function AnimatedTabIcon({
-  name,
-  focused,
-  color,
-  size,
-}: {
-  name: any;
+interface TabLabelProps {
+  label: string;
   focused: boolean;
-  color: string;
-  size: number;
-}) {
-  const scale = useSharedValue(focused ? 1.15 : 1);
-  React.useEffect(() => {
-    scale.value = withSpring(focused ? 1.15 : 1, { damping: 12 });
-  }, [focused]);
+}
 
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
+function TabLabel({ label, focused }: TabLabelProps) {
   return (
-    <Animated.View style={animStyle}>
-      <Ionicons name={name} size={size} color={color} />
-    </Animated.View>
+    <View style={styles.tabLabelWrap}>
+      <Text
+        style={[styles.tabLabelText, focused && styles.tabLabelTextActive]}
+        numberOfLines={1}
+        allowFontScaling={false}
+      >
+        {label}
+      </Text>
+      <View style={[styles.tabDot, focused && styles.tabDotActive]} />
+    </View>
   );
 }
 
@@ -80,15 +68,7 @@ export default function App() {
           screenOptions={{
             headerShown: false,
             tabBarStyle: styles.tabBar,
-            tabBarBackground: () =>
-              Platform.OS === "ios" ? (
-                <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
-              ) : (
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.surface }]} />
-              ),
-            tabBarActiveTintColor: COLORS.gold,
-            tabBarInactiveTintColor: COLORS.textDim,
-            tabBarLabelStyle: styles.tabLabel,
+            tabBarShowLabel: false,
             tabBarItemStyle: styles.tabItem,
           }}
         >
@@ -96,42 +76,23 @@ export default function App() {
             name="Menu"
             component={MenuScreen}
             options={{
-              tabBarIcon: ({ focused, color, size }) => (
-                <AnimatedTabIcon
-                  name={focused ? "restaurant" : "restaurant-outline"}
-                  focused={focused}
-                  color={color}
-                  size={size}
-                />
-              ),
+              tabBarIcon: ({ focused }) => <TabLabel label="Menu" focused={focused} />,
             }}
           />
           <Tab.Screen
-            name="Chat"
+            name="Concierge"
             component={ChatScreen}
             options={{
-              tabBarIcon: ({ focused, color, size }) => (
-                <AnimatedTabIcon
-                  name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"}
-                  focused={focused}
-                  color={color}
-                  size={size}
-                />
-              ),
+              tabBarIcon: ({ focused }) => <TabLabel label="Concierge" focused={focused} />,
             }}
           />
           <Tab.Screen
-            name="Cart"
+            name="Check"
             component={CartScreen}
             options={{
-              tabBarIcon: ({ focused, color, size }) => (
+              tabBarIcon: ({ focused }) => (
                 <View>
-                  <AnimatedTabIcon
-                    name={focused ? "bag" : "bag-outline"}
-                    focused={focused}
-                    color={color}
-                    size={size}
-                  />
+                  <TabLabel label="Check" focused={focused} />
                   <CartBadge />
                 </View>
               ),
@@ -146,26 +107,45 @@ export default function App() {
 const styles = StyleSheet.create({
   tabBar: {
     position: "absolute",
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    height: Platform.OS === "ios" ? 88 : 64,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.hairline,
+    height: Platform.OS === "ios" ? 84 : 64,
+    backgroundColor: COLORS.bg,
     elevation: 0,
-    backgroundColor: "transparent",
-  },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    marginBottom: Platform.OS === "ios" ? 0 : 4,
   },
   tabItem: {
-    paddingTop: 8,
+    paddingTop: Platform.OS === "ios" ? 10 : 8,
+  },
+  tabLabelWrap: {
+    alignItems: "center",
+    gap: 5,
+    minWidth: 90,
+  },
+  tabLabelText: {
+    color: COLORS.textDim,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+    fontWeight: "600",
+  },
+  tabLabelTextActive: {
+    color: COLORS.gold,
+  },
+  tabDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "transparent",
+  },
+  tabDotActive: {
+    backgroundColor: COLORS.gold,
   },
   badge: {
     position: "absolute",
-    top: -4,
-    right: -8,
+    top: -6,
+    right: -14,
     backgroundColor: COLORS.gold,
-    borderRadius: RADIUS.full,
+    borderRadius: 9,
     minWidth: 16,
     height: 16,
     alignItems: "center",

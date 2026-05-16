@@ -4,7 +4,7 @@ import Animated, { FadeInRight, FadeOutLeft, Layout } from "react-native-reanima
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { CartItem } from "../types";
-import { COLORS, RADIUS, SPACING } from "../constants/theme";
+import { COLORS, SPACING, FONT_FAMILY } from "../constants/theme";
 import { useCartStore } from "../store/cartStore";
 
 interface CartItemCardProps {
@@ -30,113 +30,100 @@ export default function CartItemCard({ item }: CartItemCardProps) {
 
   return (
     <Animated.View
-      entering={FadeInRight.springify()}
-      exiting={FadeOutLeft.springify()}
-      layout={Layout.springify()}
-      style={styles.card}
+      entering={FadeInRight.springify().damping(16)}
+      exiting={FadeOutLeft.springify().damping(16)}
+      layout={Layout.springify().damping(16)}
+      style={styles.row}
     >
-      <View style={styles.emojiBox}>
-        <Text style={styles.emoji}>{item.emoji}</Text>
-      </View>
+      <Text style={styles.qtyMark}>×{item.quantity}</Text>
 
-      <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.unitPrice}>${item.price.toFixed(2)} each</Text>
+      <View style={styles.body}>
+        <View style={styles.titleLine}>
+          <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+          <View style={styles.leader} />
+          <Text style={styles.lineTotal}>${(item.price * item.quantity).toFixed(2)}</Text>
+        </View>
+        <Text style={styles.unit}>${item.price.toFixed(2)} each</Text>
       </View>
 
       <View style={styles.controls}>
-        <Pressable
-          onPress={handleDecrease}
-          style={({ pressed }) => [styles.qtyBtn, pressed && styles.qtyBtnPressed]}
-        >
+        <Pressable onPress={handleDecrease} hitSlop={8} style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}>
           <Ionicons
             name={item.quantity === 1 ? "trash-outline" : "remove"}
-            size={16}
+            size={14}
             color={item.quantity === 1 ? COLORS.error : COLORS.textMuted}
           />
         </Pressable>
-
-        <Text style={styles.qty}>{item.quantity}</Text>
-
-        <Pressable
-          onPress={handleIncrease}
-          style={({ pressed }) => [styles.qtyBtn, pressed && styles.qtyBtnPressed]}
-        >
-          <Ionicons name="add" size={16} color={COLORS.textMuted} />
+        <Pressable onPress={handleIncrease} hitSlop={8} style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}>
+          <Ionicons name="add" size={14} color={COLORS.textMuted} />
         </Pressable>
       </View>
-
-      <Text style={styles.subtotal}>${(item.price * item.quantity).toFixed(2)}</Text>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  row: {
     flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.md,
-    marginBottom: SPACING.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: SPACING.sm,
+    alignItems: "flex-start",
+    paddingVertical: SPACING.md,
+    gap: SPACING.md,
   },
-  emojiBox: {
-    width: 44,
-    height: 44,
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.md,
-    alignItems: "center",
-    justifyContent: "center",
+  qtyMark: {
+    color: COLORS.gold,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 14,
+    marginTop: 1,
+    minWidth: 28,
   },
-  emoji: {
-    fontSize: 22,
-  },
-  info: {
+  body: {
     flex: 1,
+  },
+  titleLine: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: SPACING.sm,
   },
   name: {
     color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 2,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 16,
+    letterSpacing: 0.2,
   },
-  unitPrice: {
-    color: COLORS.textMuted,
-    fontSize: 12,
+  leader: {
+    flex: 1,
+    height: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.hairline,
+    marginBottom: 3,
+  },
+  lineTotal: {
+    color: COLORS.text,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 15,
+    letterSpacing: 0.3,
+  },
+  unit: {
+    color: COLORS.textDim,
+    fontSize: 11,
+    fontStyle: "italic",
+    marginTop: 2,
   },
   controls: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.xs,
+    gap: 4,
+    marginTop: 1,
   },
-  qtyBtn: {
-    width: 30,
-    height: 30,
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.md,
+  iconBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.hairline,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  qtyBtnPressed: {
-    opacity: 0.7,
-  },
-  qty: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "600",
-    minWidth: 20,
-    textAlign: "center",
-  },
-  subtotal: {
-    color: COLORS.gold,
-    fontSize: 14,
-    fontWeight: "700",
-    minWidth: 48,
-    textAlign: "right",
+  pressed: {
+    opacity: 0.6,
   },
 });

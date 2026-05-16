@@ -1,11 +1,5 @@
 import React, { useCallback } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,199 +9,154 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { MenuItem } from "../types";
-import { COLORS, RADIUS, SPACING, CATEGORY_META } from "../constants/theme";
+import { COLORS, SPACING, FONT_FAMILY } from "../constants/theme";
 import { useCartStore } from "../store/cartStore";
 
 interface MenuCardProps {
   item: MenuItem;
 }
 
-const SPICY_ICONS = ["", "🌶", "🌶🌶", "🌶🌶🌶"];
+const SPICY = ["", "·  spicy", "·  hot", "·  fiery"];
 
 export default function MenuCard({ item }: MenuCardProps) {
   const addItem = useCartStore((s) => s.addItem);
-  const cartItems = useCartStore((s) => s.items);
-  const cartItem = cartItems.find((c) => c.id === item.id);
+  const cartItem = useCartStore((s) => s.items.find((c) => c.id === item.id));
   const scale = useSharedValue(1);
 
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   const handleAdd = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    scale.value = withSequence(withSpring(0.94), withSpring(1));
+    scale.value = withSequence(withSpring(0.97, { damping: 14 }), withSpring(1, { damping: 14 }));
     addItem(item);
   }, [item, addItem, scale]);
 
-  const categoryColor = CATEGORY_META[item.category]?.color ?? COLORS.gold;
-
   return (
-    <Animated.View style={[styles.card, animatedStyle]}>
-      {/* Emoji hero */}
-      <View style={[styles.emojiContainer, { backgroundColor: categoryColor + "22" }]}>
-        <Text style={styles.emoji}>{item.emoji}</Text>
-        {item.popular && (
-          <View style={styles.popularBadge}>
-            <Text style={styles.popularText}>Popular</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Content */}
-      <View style={styles.content}>
-        <View style={styles.titleRow}>
-          <Text style={styles.name} numberOfLines={1}>
-            {item.name}
-          </Text>
-          {item.spicyLevel > 0 && (
-            <Text style={styles.spicy}>{SPICY_ICONS[item.spicyLevel]}</Text>
-          )}
+    <Animated.View style={[styles.row, animatedStyle]}>
+      <View style={styles.body}>
+        <View style={styles.titleLine}>
+          <Text style={styles.name}>{item.name}</Text>
+          <View style={styles.leader} />
+          <Text style={styles.price}>${item.price}</Text>
         </View>
 
-        <Text style={styles.description} numberOfLines={2}>
-          {item.description}
-        </Text>
+        <Text style={styles.description}>{item.description}</Text>
 
-        {/* Dietary tags */}
-        {item.dietary.length > 0 && (
-          <View style={styles.tagsRow}>
-            {item.dietary.map((tag) => (
-              <View key={tag} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
+        {(item.dietary.length > 0 || item.spicyLevel > 0 || item.popular) && (
+          <View style={styles.meta}>
+            {item.popular && <Text style={styles.metaTag}>· House Favorite</Text>}
+            {item.dietary.map((d) => (
+              <Text key={d} style={styles.metaTag}>
+                · {d}
+              </Text>
             ))}
+            {item.spicyLevel > 0 && <Text style={styles.metaTag}>{SPICY[item.spicyLevel]}</Text>}
           </View>
         )}
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-
-          <Pressable
-            onPress={handleAdd}
-            style={({ pressed }) => [styles.addBtn, pressed && styles.addBtnPressed]}
-          >
-            {cartItem ? (
-              <View style={styles.addBtnInner}>
-                <Ionicons name="checkmark" size={14} color={COLORS.bg} />
-                <Text style={styles.addBtnText}>{cartItem.quantity}</Text>
-              </View>
-            ) : (
-              <Ionicons name="add" size={20} color={COLORS.bg} />
-            )}
-          </Pressable>
-        </View>
       </View>
+
+      <Pressable
+        onPress={handleAdd}
+        hitSlop={8}
+        style={({ pressed }) => [styles.addBtn, pressed && styles.addBtnPressed]}
+      >
+        {cartItem ? (
+          <View style={styles.qtyBadge}>
+            <Text style={styles.qtyText}>{cartItem.quantity}</Text>
+          </View>
+        ) : (
+          <Ionicons name="add" size={16} color={COLORS.gold} />
+        )}
+      </Pressable>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    overflow: "hidden",
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  emojiContainer: {
-    height: 110,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  emoji: {
-    fontSize: 52,
-  },
-  popularBadge: {
-    position: "absolute",
-    top: SPACING.sm,
-    right: SPACING.sm,
-    backgroundColor: COLORS.gold,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-  },
-  popularText: {
-    color: COLORS.bg,
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  content: {
-    padding: SPACING.md,
-  },
-  titleRow: {
+  row: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.xs,
-    marginBottom: 4,
+    alignItems: "flex-start",
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md + 2,
+  },
+  body: {
+    flex: 1,
+    gap: 4,
+  },
+  titleLine: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: SPACING.sm,
   },
   name: {
     color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "600",
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 18,
+    letterSpacing: 0.3,
+  },
+  leader: {
     flex: 1,
-  },
-  spicy: {
-    fontSize: 12,
-  },
-  description: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
-    marginBottom: SPACING.sm,
-  },
-  tagsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 4,
-    marginBottom: SPACING.sm,
-  },
-  tag: {
-    borderRadius: RADIUS.full,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    backgroundColor: COLORS.surfaceElevated,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  tagText: {
-    color: COLORS.textMuted,
-    fontSize: 10,
-    fontWeight: "500",
-    textTransform: "capitalize",
-  },
-  footer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    height: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.hairline,
+    marginBottom: 4,
   },
   price: {
     color: COLORS.gold,
+    fontFamily: FONT_FAMILY.serif,
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "600",
+    letterSpacing: 0.4,
+  },
+  description: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
+    fontStyle: "italic",
+    paddingRight: SPACING.md,
+  },
+  meta: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.xs,
+    marginTop: 4,
+  },
+  metaTag: {
+    color: COLORS.textDim,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    fontWeight: "600",
   },
   addBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.gold,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  addBtnPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
+  },
+  qtyBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: COLORS.gold,
-    borderRadius: RADIUS.full,
-    width: 34,
-    height: 34,
     alignItems: "center",
     justifyContent: "center",
   },
-  addBtnPressed: {
-    opacity: 0.8,
-  },
-  addBtnInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  addBtnText: {
+  qtyText: {
     color: COLORS.bg,
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "800",
+    fontFamily: FONT_FAMILY.serif,
   },
 });

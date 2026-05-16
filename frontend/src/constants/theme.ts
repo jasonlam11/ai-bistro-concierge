@@ -1,30 +1,33 @@
+import { Platform } from "react-native";
+
 export const COLORS = {
-  // Core palette
-  bg: "#0F0E0E",
-  surface: "#1A1917",
-  surfaceElevated: "#242220",
-  border: "#2E2B27",
+  // A warm, paper-on-walnut bistro palette (less "AI dark mode")
+  bg: "#15110D",
+  surface: "#1E1813",
+  surfaceElevated: "#2A211A",
+  border: "#3A2F25",
+  hairline: "#5A4636",
 
-  // Gold accent
-  gold: "#C9A84C",
-  goldLight: "#E8D19A",
-  goldDark: "#9A7A2E",
+  // Burnished brass accent
+  gold: "#C9A24A",
+  goldLight: "#E6CD86",
+  goldDark: "#876119",
 
-  // Text
-  text: "#F5F0E8",
-  textMuted: "#A09880",
-  textDim: "#5C5648",
+  // Cream-on-paper text
+  text: "#F2E8D4",
+  textMuted: "#B5A687",
+  textDim: "#7A6A52",
 
   // Semantic
-  success: "#4CAF9A",
-  error: "#E07060",
-  warning: "#E8A84C",
+  success: "#7FAF7A",
+  error: "#C76E5E",
+  warning: "#D6A24A",
 
-  // Category pills
-  starters: "#8B6DBE",
-  mains: "#4C9CBE",
-  desserts: "#BE6D8B",
-  beverages: "#4CAF9A",
+  // Category accents (used sparingly)
+  starters: "#A48566",
+  mains: "#B97B4A",
+  desserts: "#D08A8A",
+  beverages: "#7CA89A",
 } as const;
 
 export const FONTS = {
@@ -32,6 +35,11 @@ export const FONTS = {
   medium: { fontWeight: "500" as const },
   semibold: { fontWeight: "600" as const },
   bold: { fontWeight: "700" as const },
+};
+
+export const FONT_FAMILY = {
+  serif: Platform.select({ ios: "Georgia", android: "serif", default: "Georgia" }),
+  serifBold: Platform.select({ ios: "Georgia-Bold", android: "serif", default: "Georgia" }),
 };
 
 export const RADIUS = {
@@ -51,10 +59,30 @@ export const SPACING = {
   xxl: 48,
 };
 
-export const CATEGORY_META: Record<string, { label: string; color: string; icon: string }> = {
-  all: { label: "All", color: COLORS.gold, icon: "restaurant" },
-  starters: { label: "Starters", color: COLORS.starters, icon: "leaf" },
-  mains: { label: "Mains", color: COLORS.mains, icon: "flame" },
-  desserts: { label: "Desserts", color: COLORS.desserts, icon: "ice-cream" },
-  beverages: { label: "Drinks", color: COLORS.beverages, icon: "wine" },
+export const CATEGORY_META: Record<string, { label: string; tagline: string; color: string }> = {
+  all: {
+    label: "All",
+    tagline: "The full bill of fare",
+    color: COLORS.gold,
+  },
+  starters: {
+    label: "To Begin",
+    tagline: "Small plates & openers",
+    color: COLORS.starters,
+  },
+  mains: {
+    label: "From the Hearth",
+    tagline: "Plated mains & comforts",
+    color: COLORS.mains,
+  },
+  desserts: {
+    label: "Sweets",
+    tagline: "House-made desserts",
+    color: COLORS.desserts,
+  },
+  beverages: {
+    label: "Cellar & Bar",
+    tagline: "Wine, beer & pours",
+    color: COLORS.beverages,
+  },
 };

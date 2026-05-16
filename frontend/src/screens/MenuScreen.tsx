@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
-  FlatList,
+  SectionList,
   ScrollView,
   StyleSheet,
   Pressable,
@@ -10,29 +10,41 @@ import {
   RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { MenuItem, Category } from "../types";
+import { MenuItem } from "../types";
 import { fetchMenu } from "../services/api";
 import MenuCard from "../components/MenuCard";
-import { COLORS, RADIUS, SPACING, CATEGORY_META } from "../constants/theme";
+import {
+  COLORS,
+  SPACING,
+  CATEGORY_META,
+  FONT_FAMILY,
+} from "../constants/theme";
 
-const CATEGORIES = ["all", "starters", "mains", "desserts", "beverages"] as const;
+type CategoryKey = "all" | "starters" | "mains" | "desserts" | "beverages";
+const CATEGORIES: CategoryKey[] = ["all", "starters", "mains", "desserts", "beverages"];
+const SECTION_ORDER: Exclude<CategoryKey, "all">[] = ["starters", "mains", "desserts", "beverages"];
+
+interface Section {
+  key: string;
+  title: string;
+  tagline: string;
+  data: MenuItem[];
+}
 
 export default function MenuScreen() {
   const insets = useSafeAreaInsets();
   const [menu, setMenu] = useState<MenuItem[]>([]);
-  const [filtered, setFiltered] = useState<MenuItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<CategoryKey>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const listRef = useRef<SectionList<MenuItem, Section>>(null);
 
   const loadMenu = useCallback(async () => {
     try {
       setError(null);
       const data = await fetchMenu();
       setMenu(data);
-      setFiltered(data);
     } catch (e) {
       setError("Couldn't load the menu. Is the server running?");
     } finally {
@@ -41,45 +53,76 @@ export default function MenuScreen() {
     }
   }, []);
 
-  useEffect(() => { loadMenu(); }, [loadMenu]);
-
   useEffect(() => {
-    if (selectedCategory === "all") {
-      setFiltered(menu);
-    } else {
-      setFiltered(menu.filter((item) => item.category === selectedCategory));
-    }
-  }, [selectedCategory, menu]);
+    loadMenu();
+  }, [loadMenu]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadMenu();
   }, [loadMenu]);
 
+  const sections = useMemo<Section[]>(() => {
+    const cats = selectedCategory === "all" ? SECTION_ORDER : [selectedCategory];
+    return cats
+      .map((cat) => {
+        const meta = CATEGORY_META[cat];
+        return {
+          key: cat,
+          title: meta.label,
+          tagline: meta.tagline,
+          data: menu.filter((m) => m.category === cat),
+        };
+      })
+      .filter((s) => s.data.length > 0);
+  }, [menu, selectedCategory]);
+
+  const onSelectCategory = useCallback((cat: CategoryKey) => {
+    setSelectedCategory(cat);
+    listRef.current?.scrollToLocation({ sectionIndex: 0, itemIndex: 0, animated: true, viewOffset: 0 });
+  }, []);
+
   const renderItem = useCallback(
     ({ item }: { item: MenuItem }) => <MenuCard item={item} />,
     []
   );
 
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: Section }) => (
+      <View style={styles.sectionHeader}>
+        <View style={styles.ornamentRow}>
+          <View style={styles.ornamentLine} />
+          <Text style={styles.ornamentDiamond}>◆</Text>
+          <View style={styles.ornamentLine} />
+        </View>
+        <Text style={styles.sectionTitle}>{section.title}</Text>
+        <Text style={styles.sectionTagline}>{section.tagline}</Text>
+      </View>
+    ),
+    []
+  );
+
+  const renderItemSeparator = useCallback(() => <View style={styles.itemSeparator} />, []);
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+      {/* Editorial header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerLabel}>Welcome to</Text>
-          <Text style={styles.headerTitle}>The Intelligent Bistro</Text>
+        <Text style={styles.eyebrow}>Established · MMXXVI</Text>
+        <View style={styles.titleRow}>
+          <View style={styles.titleRule} />
+          <Text style={styles.title}>The Intelligent Bistro</Text>
+          <View style={styles.titleRule} />
         </View>
-        <View style={styles.headerIcon}>
-          <Ionicons name="restaurant" size={20} color={COLORS.gold} />
-        </View>
+        <Text style={styles.subtitle}>Farm to table · By the bay · A short walk from somewhere</Text>
       </View>
 
-      {/* Category filter */}
+      {/* Text-only category nav with underline-active */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterScroll}
-        style={styles.filterContainer}
+        contentContainerStyle={styles.navContent}
+        style={styles.nav}
       >
         {CATEGORIES.map((cat) => {
           const meta = CATEGORY_META[cat];
@@ -87,22 +130,14 @@ export default function MenuScreen() {
           return (
             <Pressable
               key={cat}
-              onPress={() => setSelectedCategory(cat)}
-              style={[
-                styles.filterPill,
-                active && { backgroundColor: meta.color, borderColor: meta.color },
-              ]}
+              onPress={() => onSelectCategory(cat)}
+              hitSlop={6}
+              style={styles.navItem}
             >
-              <View style={styles.filterIcon}>
-                <Ionicons
-                  name={meta.icon as any}
-                  size={14}
-                  color={active ? COLORS.bg : COLORS.textMuted}
-                />
-              </View>
-              <Text style={[styles.filterText, active && { color: COLORS.bg }]}>
+              <Text style={[styles.navLabel, active && styles.navLabelActive]}>
                 {meta.label}
               </Text>
+              <View style={[styles.navUnderline, active && styles.navUnderlineActive]} />
             </Pressable>
           );
         })}
@@ -112,27 +147,26 @@ export default function MenuScreen() {
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={COLORS.gold} size="large" />
-          <Text style={styles.loadingText}>Loading menu…</Text>
+          <Text style={styles.loadingText}>Setting the table…</Text>
         </View>
       ) : error ? (
         <View style={styles.center}>
-          <Ionicons name="alert-circle-outline" size={48} color={COLORS.error} />
+          <Text style={styles.errorTitle}>The kitchen is quiet.</Text>
           <Text style={styles.errorText}>{error}</Text>
           <Pressable onPress={loadMenu} style={styles.retryBtn}>
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>Try again</Text>
           </Pressable>
         </View>
       ) : (
-        <FlatList
-          data={filtered}
-          renderItem={renderItem}
+        <SectionList
+          ref={listRef}
+          sections={sections}
           keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.columnWrapper}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: insets.bottom + 90 },
-          ]}
+          renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
+          ItemSeparatorComponent={renderItemSeparator}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
+          stickySectionHeadersEnabled={false}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -141,9 +175,12 @@ export default function MenuScreen() {
               tintColor={COLORS.gold}
             />
           }
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={styles.emptyText}>No items in this category</Text>
+          ListFooterComponent={
+            <View style={styles.colophon}>
+              <Text style={styles.colophonDiamond}>◆</Text>
+              <Text style={styles.colophonText}>
+                Prices in U.S. dollars. Gratuity is included.{"\n"}Kindly inform us of any allergies.
+              </Text>
             </View>
           }
         />
@@ -158,72 +195,115 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
   },
   header: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.md,
+    alignItems: "center",
+  },
+  eyebrow: {
+    color: COLORS.textDim,
+    fontSize: 10,
+    letterSpacing: 3,
+    textTransform: "uppercase",
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
+    gap: SPACING.sm,
+    alignSelf: "stretch",
   },
-  headerLabel: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    fontWeight: "500",
+  titleRule: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.hairline,
   },
-  headerTitle: {
+  title: {
     color: COLORS.text,
-    fontSize: 22,
-    fontWeight: "700",
-    letterSpacing: -0.3,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 24,
+    letterSpacing: 0.5,
+    textAlign: "center",
   },
-  headerIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  subtitle: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    marginTop: 6,
+    fontStyle: "italic",
+    letterSpacing: 0.4,
+  },
+  nav: {
+    maxHeight: 44,
+  },
+  navContent: {
+    paddingHorizontal: SPACING.lg,
+    gap: SPACING.lg,
     alignItems: "center",
-    justifyContent: "center",
   },
-  filterContainer: {
-    height: 56,
+  navItem: {
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  navLabel: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+    fontWeight: "600",
+  },
+  navLabelActive: {
+    color: COLORS.gold,
+  },
+  navUnderline: {
+    height: 1,
+    width: 14,
+    backgroundColor: "transparent",
+    marginTop: 5,
+  },
+  navUnderlineActive: {
+    backgroundColor: COLORS.gold,
+  },
+  sectionHeader: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.md,
+    alignItems: "center",
+  },
+  ornamentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    alignSelf: "stretch",
     marginBottom: SPACING.sm,
   },
-  filterScroll: {
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
-    gap: SPACING.sm,
+  ornamentLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: COLORS.hairline,
   },
-  filterPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: SPACING.md,
-    height: 36,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  ornamentDiamond: {
+    color: COLORS.gold,
+    fontSize: 10,
   },
-  filterIcon: {
-    width: 14,
-    height: 14,
-    alignItems: "center",
-    justifyContent: "center",
+  sectionTitle: {
+    color: COLORS.text,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 22,
+    letterSpacing: 0.5,
   },
-  filterText: {
+  sectionTagline: {
     color: COLORS.textMuted,
-    fontSize: 13,
-    fontWeight: "500",
+    fontSize: 11,
+    letterSpacing: 1,
+    fontStyle: "italic",
+    marginTop: 4,
   },
-  columnWrapper: {
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.md,
-  },
-  listContent: {
-    paddingTop: SPACING.sm,
+  itemSeparator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: COLORS.hairline,
+    marginHorizontal: SPACING.lg,
+    opacity: 0.6,
   },
   center: {
     flex: 1,
@@ -231,29 +311,54 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingTop: 80,
     gap: SPACING.md,
+    paddingHorizontal: SPACING.xl,
   },
   loadingText: {
     color: COLORS.textMuted,
+    fontStyle: "italic",
     fontSize: 14,
+  },
+  errorTitle: {
+    color: COLORS.text,
+    fontFamily: FONT_FAMILY.serif,
+    fontSize: 20,
   },
   errorText: {
     color: COLORS.textMuted,
-    fontSize: 14,
+    fontSize: 13,
     textAlign: "center",
-    paddingHorizontal: SPACING.xl,
+    fontStyle: "italic",
   },
   retryBtn: {
-    backgroundColor: COLORS.gold,
+    borderColor: COLORS.gold,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: SPACING.xl,
     paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.full,
+    marginTop: SPACING.sm,
   },
   retryText: {
-    color: COLORS.bg,
+    color: COLORS.gold,
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: "uppercase",
     fontWeight: "600",
   },
-  emptyText: {
-    color: COLORS.textMuted,
-    fontSize: 14,
+  colophon: {
+    alignItems: "center",
+    paddingTop: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  colophonDiamond: {
+    color: COLORS.goldDark,
+    fontSize: 12,
+  },
+  colophonText: {
+    color: COLORS.textDim,
+    fontSize: 10,
+    letterSpacing: 1,
+    textAlign: "center",
+    fontStyle: "italic",
+    lineHeight: 16,
   },
 });
